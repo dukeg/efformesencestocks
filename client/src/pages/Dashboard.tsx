@@ -5,10 +5,13 @@ import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { BarChart3, Package, AlertCircle, TrendingDown, Settings, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
+import { ProductModal } from "@/components/ProductModal";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "products" | "alerts" | "recommendations">("overview");
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
@@ -187,10 +190,18 @@ function OverviewTab() {
 
 function ProductsTab() {
   const { data: products, isLoading } = trpc.products.list.useQuery();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const utils = trpc.useUtils();
 
   if (isLoading) {
     return <div className="text-center py-12">Loading products...</div>;
   }
+
+  const handleProductSuccess = () => {
+    utils.products.list.invalidate();
+    utils.analytics.overview.invalidate();
+    utils.analytics.healthDistribution.invalidate();
+  };
 
   return (
     <div className="space-y-6">
@@ -199,11 +210,12 @@ function ProductsTab() {
           <h2 className="text-3xl font-bold text-foreground">Products</h2>
           <p className="text-muted-foreground mt-1">Manage your inventory items</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsModalOpen(true)}>
           <Package className="w-4 h-4" />
           Add Product
         </Button>
       </div>
+      <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={handleProductSuccess} />
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
